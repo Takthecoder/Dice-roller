@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Roller, Coin Flipper, and Mini Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .output {
+            display: flex;
+            justify-content: center;
+            margin: 20px;
+        }
+
+        .box {
+            display: inline-block;
+            width: 100px;
+            height: 100px;
+            margin: 10px;
+            line-height: 100px;
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background-color: #fff;
+            border: 1px solid #ccc;
+        }
+
+        #fullscreenButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #fullscreenButton:hover {
+            background-color: #0056b3;
+        }
+
+        footer {
+            margin-top: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="gameTitle">Dice Roller</h1>
+    <div>
+        <button onclick="toggleMode()">Switch to Coin Flip</button>
+        <button onclick="toggleGame()">Play Mini Game</button>
+        <button onclick="performRoll()">Roll</button>
+    </div>
+
+    <div class="output">
+        <div id="output1" class="box">?</div>
+        <div id="output2" class="box">?</div>
+    </div>
+
+    <div>
+        <canvas id="gameCanvas" width="800" height="300" style="display: none;"></canvas>
+        <button id="fullscreenButton" style="display: none;" onclick="toggleFullScreen()">Full Screen</button>
+    </div>
+
+    <footer>By 滑川剛琉</footer>
+
+    <script>
+        let mode = "dice"; // Current mode: dice, coin, or game
+        let gameActive = false;
+
+        // Dice/Coin logic
+        function performRoll() {
+            if (mode === "dice") {
+                rollDice();
+            } else if (mode === "coin") {
+                flipCoin();
+            }
+        }
+
+        function rollDice() {
+            const die1 = Math.floor(Math.random() * 6) + 1;
+            const die2 = Math.floor(Math.random() * 6) + 1;
+
+            document.getElementById("output1").textContent = die1;
+            document.getElementById("output2").textContent = die2;
+        }
+
+        function flipCoin() {
+            const coin1 = Math.random() < 0.5 ? "Heads" : "Tails";
+            const coin2 = Math.random() < 0.5 ? "Heads" : "Tails";
+
+            document.getElementById("output1").textContent = coin1;
+            document.getElementById("output2").textContent = coin2;
+        }
+
+        function toggleMode() {
+            if (mode === "dice") {
+                mode = "coin";
+                document.getElementById("gameTitle").textContent = "Coin Flipper";
+            } else {
+                mode = "dice";
+                document.getElementById("gameTitle").textContent = "Dice Roller";
+            }
+        }
+
+        // Mini Game Logic
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let player = { x: 50, y: 150, width: 30, height: 30, dy: 0 };
+        let obstacles = [];
+        let gameScore = 0;
+        let gameInterval;
+
+        function toggleGame() {
+            if (gameActive) {
+                stopGame();
+            } else {
+                startGame();
+            }
+        }
+
+        function startGame() {
+            mode = "game";
+            document.getElementById("gameTitle").textContent = "Mini Game";
+            document.getElementById("output1").textContent = "?";
+            document.getElementById("output2").textContent = "?";
+            canvas.style.display = "block";
+            document.getElementById("fullscreenButton").style.display = "block";
+
+            resetGame();
+            gameActive = true;
+            gameInterval = setInterval(updateGame, 20);
+            document.addEventListener("keydown", handleKey);
+        }
+
+        function stopGame() {
+            clearInterval(gameInterval);
+            gameActive = false;
+            canvas.style.display = "none";
+            document.getElementById("fullscreenButton").style.display = "none";
+            document.removeEventListener("keydown", handleKey);
+        }
+
+        function resetGame() {
+            player.y = 150;
+            player.dy = 0;
+            obstacles = [];
+            gameScore = 0;
+        }
+
+        function handleKey(event) {
+            if (event.code === "Space" && player.y >= 150) {
+                player.dy = -8; // Jump
+            }
+            if (event.code === "Escape") {
+                stopGame();
+            }
+            if (event.key === "f" || event.key === "F") {
+                stopGame();
+                document.getElementById("gameTitle").textContent = "Dice Roller";
+                mode = "dice";
+            }
+        }
+
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Player physics
+            player.y += player.dy;
+            if (player.y < 150) {
+                player.dy += 0.5;
+            } else {
+                player.y = 150;
+                player.dy = 0;
+            }
+
+            // Draw player
+            ctx.fillStyle = "#007bff";
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Obstacles
+            if (Math.random() < 0.02) {
+                obstacles.push({ x: canvas.width, y: 150, width: 30, height: 30 });
+            }
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= 5;
+
+                // Draw obstacle
+                ctx.fillStyle = "red";
+                ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+
+                // Check collision
+                if (
+                    player.x < obstacles[i].x + obstacles[i].width &&
+                    player.x + player.width > obstacles[i].x &&
+                    player.y < obstacles[i].y + obstacles[i].height
+                ) {
+                    stopGame();
+                    alert("Game Over! Score: " + gameScore);
+                    return;
+                }
+
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                    gameScore++;
+                }
+            }
+
+            // Display score
+            ctx.fillStyle = "#000";
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + gameScore, 10, 20);
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                canvas.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    </script>
+</body>
+</html>
